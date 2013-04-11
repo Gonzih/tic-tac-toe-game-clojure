@@ -14533,10 +14533,12 @@ jayq.core.ajax_m = cljs.core.ObjMap.fromObject(["\ufdd0:return", "\ufdd0:bind", 
   return jayq.core.done.call(null, jayq.core.ajax.call(null, a), b)
 }, "\ufdd0:zero":cljs.core.identity});
 var xo_game = {core:{}};
+xo_game.core.stop = void 0;
 xo_game.core.id = cljs.core.atom.call(null, null);
 xo_game.core.players = cljs.core.atom.call(null, null);
 xo_game.core.turn_QMARK_ = cljs.core.atom.call(null, !1);
 xo_game.core.player_QMARK_ = cljs.core.atom.call(null, !1);
+xo_game.core.host = document.location.host;
 xo_game.core.show_board = function() {
   return jayq.core.show.call(null, jayq.core.$.call(null, "#board"))
 };
@@ -14576,7 +14578,7 @@ cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:start-tur
 });
 cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:end-turn", function() {
   cljs.core.reset_BANG_.call(null, xo_game.core.turn_QMARK_, !1);
-  return xo_game.core.status.call(null, "Waiting for other player turn")
+  return xo_game.core.status.call(null, "Waiting for other player's turn")
 });
 cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:move", function(a) {
   var b = cljs.core.seq_QMARK_.call(null, a) ? cljs.core.apply.call(null, cljs.core.hash_map, a) : a, a = cljs.core._lookup.call(null, b, "\ufdd0:player-id", null), b = cljs.core._lookup.call(null, b, "\ufdd0:cell-to", null);
@@ -14585,7 +14587,12 @@ cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:move", fu
 cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:win", function(a) {
   a = cljs.core.seq_QMARK_.call(null, a) ? cljs.core.apply.call(null, cljs.core.hash_map, a) : a;
   a = cljs.core._lookup.call(null, a, "\ufdd0:player-id", null);
-  return cljs.core.truth_(cljs.core.deref.call(null, xo_game.core.player_QMARK_)) ? cljs.core._EQ_.call(null, cljs.core.deref.call(null, xo_game.core.id), a) ? xo_game.core.status.call(null, "You won") : xo_game.core.status.call(null, "You lose") : xo_game.core.status.call(null, "Player ", a, " won")
+  cljs.core.truth_(cljs.core.deref.call(null, xo_game.core.player_QMARK_)) ? cljs.core._EQ_.call(null, cljs.core.deref.call(null, xo_game.core.id), a) ? xo_game.core.status.call(null, "You win") : xo_game.core.status.call(null, "You lose") : xo_game.core.status.call(null, "Player ", a, " win");
+  return xo_game.core.stop.call(null)
+});
+cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:finish", function() {
+  xo_game.core.status.call(null, "Game finished");
+  return xo_game.core.stop.call(null)
 });
 cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:default", function(a) {
   return jayq.util.log.call(null, "Wrong message ", a)
@@ -14593,7 +14600,10 @@ cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:default",
 xo_game.core.get_id = function(a) {
   return a.send("" + cljs.core.str(cljs.core.ObjMap.fromObject(["\ufdd0:action"], {"\ufdd0:action":"\ufdd0:get-id"})))
 };
-xo_game.core.conn = new WebSocket("ws://127.0.0.1:3000/ws");
+xo_game.core.conn = new WebSocket([cljs.core.str("ws://"), cljs.core.str(xo_game.core.host), cljs.core.str("/ws")].join(""));
+xo_game.core.stop = function() {
+  return xo_game.core.conn.close()
+};
 xo_game.core.onopen = function() {
   return xo_game.core.get_id.call(null, xo_game.core.conn)
 };

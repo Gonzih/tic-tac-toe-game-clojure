@@ -34,6 +34,11 @@
 (def current-player (ref nil))
 (def game-moves (ref []))
 
+(defn reset-game []
+  (info "Reset")
+  (dosync
+    (ref-set game-moves [])))
+
 (defn user-win? [user-turns]
   (some (fn [turns] (subset? turns user-turns)) win-combinations))
 
@@ -69,7 +74,7 @@
 (defn win-by [channel winner]
   (send-channel! channel {:action :win :player-id winner}))
 
-(defn finish-game [channel]
+(defn finish-game [[channel id]]
   (send-channel! channel {:action :finish}))
 
 (defn another-player []
@@ -99,12 +104,14 @@
     (-> @current-player find-channel (send-channel! {:action :start-turn}))
     ; Find winner and send clients about it
     (if-let [winner (find-winner)]
-      (doall (map (fn [[channel id]]
+      (do (doall (map (fn [[channel id]]
                     (win-by channel winner))
-                  @clients)))
+                  @clients))
+          (reset-game)))
     ; Finish game if 9 moves where done
     (when (= (count @game-moves) 9)
-      (doall (map finish-game @clients)))))
+      (doall (map finish-game @clients))
+      (reset-game))))
 
 (defmethod process-message :default [channel message]
   (info (str "Invalid message " message)))
@@ -119,9 +126,13 @@
       (do-alter clients assoc channel true)
       (on-receive channel (fn [msg] (#'msg-received channel msg)))
       (on-close channel (fn [status]
+                          (info "Client " channel " quit.")
                           (dosync
-                            (alter players disj   (@clients channel))
-                            (alter clients dissoc channel)))))))
+                            (let [id (@clients channel)]
+                              (alter players disj   id)
+                              ; Do I need this line?
+                              (if (= @current-player id) (ref-set current-player nil))
+                              (alter clients dissoc channel))))))))
 
 (defroutes app-routes
   (GET "/" [] (layout/index))

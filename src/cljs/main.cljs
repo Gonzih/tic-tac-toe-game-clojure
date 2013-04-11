@@ -3,10 +3,15 @@
   (:use [jayq.util :only [log]]
         [jayq.core :only [$ inner show on attr]]))
 
+(declare stop)
+
 (def id      (atom nil))
 (def players (atom nil))
 (def turn?   (atom false))
 (def player? (atom false))
+
+(def host (-> js/document (aget "location") (aget "host")))
+
 
 (defn show-board [] (show ($ "#board")))
 (defn status [& messages] (inner ($ "#status") (apply str messages)))
@@ -30,7 +35,7 @@
 
 (defmethod process-message :end-turn [message]
   (reset! turn? false)
-  (status "Waiting for other player turn"))
+  (status "Waiting for other player's turn"))
 
 (defmethod process-message :move [message]
   (let [{:keys [cell-to player-id]} message]
@@ -39,9 +44,14 @@
 (defmethod process-message :win [{:keys [player-id]}]
   (if @player?
     (if (= @id player-id)
-      (status "You won")
+      (status "You win")
       (status "You lose"))
-    (status "Player " player-id " won")))
+    (status "Player " player-id " win"))
+  (stop))
+
+(defmethod process-message :finish [message]
+  (status "Game finished")
+  (stop))
 
 (defmethod process-message :default [message]
   (log "Wrong message " message))
@@ -49,7 +59,9 @@
 (defn get-id [conn]
   (.send conn (str {:action :get-id})))
 
-(def conn (js/WebSocket. "ws://127.0.0.1:3000/ws"))
+(def conn (js/WebSocket. (str "ws://" host "/ws")))
+
+(defn stop [] (.close conn))
 
 (defn onopen [e]
   (get-id conn))
