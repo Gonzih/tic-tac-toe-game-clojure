@@ -14566,8 +14566,8 @@ cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:end-turn"
   return xo_game.core.status.call(null, "Waiting for other player turn")
 });
 cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:move", function(a) {
-  var b = cljs.core.seq_QMARK_.call(null, a) ? cljs.core.apply.call(null, cljs.core.hash_map, a) : a, a = cljs.core._lookup.call(null, b, "\ufdd0:cell-to", null), b = cljs.core._lookup.call(null, b, "\ufdd0:player-id", null);
-  return jayq.core.inner.call(null, jayq.core.$.call(null, [cljs.core.str("div#"), cljs.core.str(a), cljs.core.str(".cell")].join("")), cljs.core.deref.call(null, xo_game.core.players).call(null, b))
+  var b = cljs.core.seq_QMARK_.call(null, a) ? cljs.core.apply.call(null, cljs.core.hash_map, a) : a, a = cljs.core._lookup.call(null, b, "\ufdd0:player-id", null), b = cljs.core._lookup.call(null, b, "\ufdd0:cell-to", null);
+  return jayq.core.inner.call(null, jayq.core.$.call(null, [cljs.core.str("div#"), cljs.core.str(b), cljs.core.str(".cell")].join("")), cljs.core.deref.call(null, xo_game.core.players).call(null, a))
 });
 cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:default", function(a) {
   return jayq.util.log.call(null, "Wrong message ", a)

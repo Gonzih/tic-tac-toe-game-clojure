@@ -33,8 +33,7 @@
   (status "Waiting for other player turn"))
 
 (defmethod process-message :move [message]
-  (let [{cell-to   :cell-to
-         player-id :player-id} message]
+  (let [{:keys [cell-to player-id]} message]
     (inner ($ (str "div#" cell-to ".cell")) (@players player-id))))
 
 (defmethod process-message :default [message]
