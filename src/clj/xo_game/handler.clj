@@ -25,6 +25,10 @@
 (def current-player (ref nil))
 (def game-moves (ref []))
 
+(defn valid-move [player-id cell-to]
+  (and (contains? @players player-id)
+       (empty? (filter (fn [[id to]] (= to cell-to)) @game-moves))))
+
 (defn find-channel [id]
   (-> (filter (fn [[conn c-id]] (= id c-id)) @clients) first first))
 
@@ -58,15 +62,16 @@
 
 (defmethod process-message :move [channel message]
   (let [{cell-to :cell-to player-id :player-id} message]
-    (do-alter game-moves conj [player-id cell-to])
-    (doall (map (fn [[channel id]]
-                  (send-channel! channel {:action :move
-                                          :cell-to cell-to
-                                          :player-id player-id}))
-                @clients))
-    (send-channel! channel {:action :end-turn})
-    (do-ref-set current-player (another-player))
-    (-> @current-player find-channel (send-channel! {:action :start-turn}))))
+    (when (valid-move player-id cell-to)
+      (do-alter game-moves conj [player-id cell-to])
+      (doall (map (fn [[channel id]]
+                    (send-channel! channel {:action :move
+                                            :cell-to cell-to
+                                            :player-id player-id}))
+                  @clients))
+      (send-channel! channel {:action :end-turn})
+      (do-ref-set current-player (another-player))
+      (-> @current-player find-channel (send-channel! {:action :start-turn})))))
 
 (defmethod process-message :default [channel message]
   (info (str "Invalid message " message)))
