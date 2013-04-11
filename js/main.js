@@ -14540,9 +14540,22 @@ xo_game.core.player_QMARK_ = cljs.core.atom.call(null, !1);
 xo_game.core.show_board = function() {
   return jayq.core.show.call(null, jayq.core.$.call(null, "#board"))
 };
-xo_game.core.status = function(a) {
-  return jayq.core.inner.call(null, jayq.core.$.call(null, "#status"), a)
-};
+xo_game.core.status = function() {
+  var a = function(a) {
+    return jayq.core.inner.call(null, jayq.core.$.call(null, "#status"), cljs.core.apply.call(null, cljs.core.str, a))
+  }, b = function(b) {
+    var d = null;
+    goog.isDef(b) && (d = cljs.core.array_seq(Array.prototype.slice.call(arguments, 0), 0));
+    return a.call(this, d)
+  };
+  b.cljs$lang$maxFixedArity = 0;
+  b.cljs$lang$applyTo = function(b) {
+    b = cljs.core.seq(b);
+    return a(b)
+  };
+  b.cljs$lang$arity$variadic = a;
+  return b
+}();
 xo_game.core.process_message = function() {
   var a = cljs.core.atom.call(null, cljs.core.ObjMap.EMPTY), b = cljs.core.atom.call(null, cljs.core.ObjMap.EMPTY), c = cljs.core.atom.call(null, cljs.core.ObjMap.EMPTY), d = cljs.core.atom.call(null, cljs.core.ObjMap.EMPTY), e = cljs.core._lookup.call(null, cljs.core.ObjMap.EMPTY, "\ufdd0:hierarchy", cljs.core.global_hierarchy);
   return new cljs.core.MultiFn("process-message", "\ufdd0:action", "\ufdd0:default", e, a, b, c, d)
@@ -14568,6 +14581,11 @@ cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:end-turn"
 cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:move", function(a) {
   var b = cljs.core.seq_QMARK_.call(null, a) ? cljs.core.apply.call(null, cljs.core.hash_map, a) : a, a = cljs.core._lookup.call(null, b, "\ufdd0:player-id", null), b = cljs.core._lookup.call(null, b, "\ufdd0:cell-to", null);
   return jayq.core.inner.call(null, jayq.core.$.call(null, [cljs.core.str("div#"), cljs.core.str(b), cljs.core.str(".cell")].join("")), cljs.core.deref.call(null, xo_game.core.players).call(null, a))
+});
+cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:win", function(a) {
+  a = cljs.core.seq_QMARK_.call(null, a) ? cljs.core.apply.call(null, cljs.core.hash_map, a) : a;
+  a = cljs.core._lookup.call(null, a, "\ufdd0:player-id", null);
+  return cljs.core.truth_(cljs.core.deref.call(null, xo_game.core.player_QMARK_)) ? cljs.core._EQ_.call(null, cljs.core.deref.call(null, xo_game.core.id), a) ? xo_game.core.status.call(null, "You won") : xo_game.core.status.call(null, "You lose") : xo_game.core.status.call(null, "Player ", a, " won")
 });
 cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:default", function(a) {
   return jayq.util.log.call(null, "Wrong message ", a)

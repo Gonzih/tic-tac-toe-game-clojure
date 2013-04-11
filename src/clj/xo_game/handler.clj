@@ -5,10 +5,12 @@
             [ring.middleware.reload     :refer :all]
             [ring.middleware.stacktrace :refer :all]
             [org.httpkit.server         :refer :all]
+            [clojure.set                :refer [subset?]]
             [clojure.tools.logging      :refer [info]]
             [compojure.handler     :as handler]
             [compojure.route       :as route]
-            [views.layout          :as layout]))
+            [views.layout          :as layout]
+            [clojure.string        :as s]))
 
 (defmacro do-alter [& args]
   `(dosync (alter ~@args)))
@@ -20,12 +22,28 @@
   (info "Sending to channel " channel " data " data)
   (send! channel (str data)))
 
+(def ran (range 1 4))
+(def win-lines (->>  (for [a ran b ran] (str a b)) (partition 3)))
+(def win-cols  (->>  (for [a ran b ran] (str b a)) (partition 3)))
+(def win-diag1 (list (for [a ran] (str a a))))
+(def win-diag2 (list (s/split "13 22 31" #"\s")))
+(def win-combinations (map set (concat win-lines win-cols win-diag1 win-diag2)))
+
 (def clients (ref {}))
 (def players (ref #{}))
 (def current-player (ref nil))
 (def game-moves (ref []))
 
-(defn find-winner [])
+(defn user-win? [user-turns]
+  (some (fn [turns] (subset? turns user-turns)) win-combinations))
+
+(defn find-winner []
+  (->> @game-moves
+       (group-by first)
+       (map (fn [[id moves]] [id (map last moves)]))
+       (map (fn [[id moves]] [id (-> moves concat set)]))
+       (filter (fn [[id moves]] (user-win? moves)))
+       first first))
 
 (defn valid-move [player-id cell-to]
   (and (contains? @players player-id)
@@ -47,6 +65,12 @@
   (-> @current-player
       find-channel
       (send-channel! {:action :start-turn})))
+
+(defn win-by [channel winner]
+  (send-channel! channel {:action :win :player-id winner}))
+
+(defn finish-game [channel]
+  (send-channel! channel {:action :finish}))
 
 (defn another-player []
   (first (disj @players @current-player)))
@@ -73,7 +97,14 @@
     (send-channel! channel {:action :end-turn})
     (do-ref-set current-player (another-player))
     (-> @current-player find-channel (send-channel! {:action :start-turn}))
-    (find-winner)))
+    ; Find winner and send clients about it
+    (if-let [winner (find-winner)]
+      (doall (map (fn [[channel id]]
+                    (win-by channel winner))
+                  @clients)))
+    ; Finish game if 9 moves where done
+    (when (= (count @game-moves) 9)
+      (doall (map finish-game @clients)))))
 
 (defmethod process-message :default [channel message]
   (info (str "Invalid message " message)))

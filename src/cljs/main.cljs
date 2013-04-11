@@ -9,7 +9,7 @@
 (def player? (atom false))
 
 (defn show-board [] (show ($ "#board")))
-(defn status [message] (inner ($ "#status") message))
+(defn status [& messages] (inner ($ "#status") (apply str messages)))
 
 (defmulti process-message :action)
 
@@ -35,6 +35,13 @@
 (defmethod process-message :move [message]
   (let [{:keys [cell-to player-id]} message]
     (inner ($ (str "div#" cell-to ".cell")) (@players player-id))))
+
+(defmethod process-message :win [{:keys [player-id]}]
+  (if @player?
+    (if (= @id player-id)
+      (status "You won")
+      (status "You lose"))
+    (status "Player " player-id " won")))
 
 (defmethod process-message :default [message]
   (log "Wrong message " message))
