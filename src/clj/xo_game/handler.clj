@@ -51,7 +51,8 @@
        first first))
 
 (defn valid-move [player-id cell-to]
-  (and (contains? @players player-id)
+  (and (= @current-player player-id)
+       (contains? @players player-id)
        (empty? (filter (fn [[id to]] (= to cell-to)) @game-moves))))
 
 (defn find-channel [id]
