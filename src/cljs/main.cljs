@@ -50,7 +50,7 @@
   (stop))
 
 (defmethod process-message :finish [message]
-  (status "Game finished")
+  (status "Draw game")
   (stop))
 
 (defmethod process-message :default [message]

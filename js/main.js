@@ -14591,7 +14591,7 @@ cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:win", fun
   return xo_game.core.stop.call(null)
 });
 cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:finish", function() {
-  xo_game.core.status.call(null, "Game finished");
+  xo_game.core.status.call(null, "Draw game");
   return xo_game.core.stop.call(null)
 });
 cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:default", function(a) {
