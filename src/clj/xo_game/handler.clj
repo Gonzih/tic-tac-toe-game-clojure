@@ -23,16 +23,16 @@
   (send! channel (str data)))
 
 (def ran (range 1 4))
-(def win-lines (->>  (for [a ran b ran] (str a b)) (partition 3)))
-(def win-cols  (->>  (for [a ran b ran] (str b a)) (partition 3)))
-(def win-diag1 (list (for [a ran] (str a a))))
-(def win-diag2 (list (s/split "13 22 31" #"\s")))
-(def win-combinations (map set (concat win-lines win-cols win-diag1 win-diag2)))
+(def win-lines (->>  (for [a ran b ran] (str a b)) (partition 3)))               ; All win rows
+(def win-cols  (->>  (for [a ran b ran] (str b a)) (partition 3)))               ; All win cols
+(def win-diag1 (list (for [a ran] (str a a))))                                   ; Win diagonal from upper right to bottom left
+(def win-diag2 (list (s/split "13 22 31" #"\s")))                                ; Win diagonal from upper left to bottom right
+(def win-combinations (map set (concat win-lines win-cols win-diag1 win-diag2))) ; Concat all win possibilities, convert to set
 
-(def clients (ref {}))
-(def players (ref #{}))
-(def current-player (ref nil))
-(def game-moves (ref []))
+(def clients (ref {}))         ; List of clients (WebSockets + ids)
+(def players (ref #{}))        ; List of players (ids)
+(def current-player (ref nil)) ; ID of current player (current turn)
+(def game-moves (ref []))      ; History of moves
 
 (defn reset-game []
   (info "Reset")
@@ -59,7 +59,7 @@
   (-> (filter (fn [[conn c-id]] (= id c-id)) @clients) first first))
 
 (defn uuid []
-  (-> (java.util.UUID/randomUUID) str))
+  (str (java.util.UUID/randomUUID)))
 
 (defn start-client [[channel id]]
   (send-channel! channel {:action :start
@@ -72,7 +72,7 @@
       find-channel
       (send-channel! {:action :start-turn})))
 
-(defn win-by [channel winner]
+(defn game-win-by [channel winner]
   (send-channel! channel {:action :win :player-id winner}))
 
 (defn finish-game [[channel id]]
@@ -86,33 +86,44 @@
 (defmethod process-message :get-id [channel message]
   (let [id (str (uuid))]
     (dosync
-      (alter clients assoc channel id)
-      (when (< (count @players) 2) (alter   players conj   id))
-      (when (= (count @players) 1) (ref-set current-player id)))
-    (when (= (count @players) 2) (start-game))
-    (send-channel! channel {:action :get-id :id id})))
+      (alter clients assoc channel id)                           ; Add new user id to clients list
+      (when (< (count @players) 2) (alter   players conj   id))  ; If players amount il lower than 2 add player
+      (when (= (count @players) 1) (ref-set current-player id))) ; If we have 1 player set it as current-player
+    (send-channel! channel {:action :get-id :id id})             ; Send back user id to user
+    (when (= (count @players) 2) (start-game))))                 ; If we have 2 playerst then start the game
 
-(defmethod process-message :move [channel {:keys [cell-to player-id]}]
+(defn try-win-game
+  "Find winner and send clients info about it"
+  []
+  (if-let [winner (find-winner)]
+    (do (doall (map (fn [[channel id]] (game-win-by channel winner))
+                    @clients))
+        (reset-game))))
+
+(defn try-finish-game
+  "Finish game if 9 moves were done"
+  []
+  (when (= (count @game-moves) 9)
+    (doall (map finish-game @clients))
+    (reset-game)))
+
+(defn end-turn [channel]
+  (send-channel! channel {:action :end-turn}))
+
+(defn start-turn [channel]
+  (send-channel! channel {:action :start-turn}))
+
+(defmethod process-message :move [channel {:keys [cell-to player-id] :as message}]
   (when (valid-move player-id cell-to)
-    (do-alter game-moves conj [player-id cell-to])
-    (doall (map (fn [[channel id]]
-                  (send-channel! channel {:action :move
-                                          :cell-to cell-to
-                                          :player-id player-id}))
+    (do-alter game-moves conj [player-id cell-to]) ; Store move
+    (doall (map (fn [[channel id]]                 ; Broadcast move to all clients
+                  (send-channel! channel message))
                 @clients))
-    (send-channel! channel {:action :end-turn})
-    (do-ref-set current-player (another-player))
-    (-> @current-player find-channel (send-channel! {:action :start-turn}))
-    ; Find winner and send clients about it
-    (if-let [winner (find-winner)]
-      (do (doall (map (fn [[channel id]]
-                    (win-by channel winner))
-                  @clients))
-          (reset-game)))
-    ; Finish game if 9 moves where done
-    (when (= (count @game-moves) 9)
-      (doall (map finish-game @clients))
-      (reset-game))))
+    (end-turn channel)                             ; End turn for current user
+    (do-ref-set current-player (another-player))   ; Replace current user with another one
+    (-> @current-player find-channel start-turn)   ; Start turn for new user
+    (try-win-game)                                 ; Try to find game winner
+    (try-finish-game)))                            ; Try to finish the game
 
 (defmethod process-message :default [channel message]
   (info (str "Invalid message " message)))
@@ -125,23 +136,23 @@
   (with-channel req channel
     (when (websocket? channel)
       (do-alter clients assoc channel true)
-      (on-receive channel (fn [msg] (#'msg-received channel msg)))
+      (on-receive channel (fn [msg] (msg-received channel msg)))
       (on-close channel (fn [status]
                           (info "Client " channel " quit.")
                           (dosync
                             (let [id (@clients channel)]
-                              (alter players disj   id)
-                              ; Do I need this line?
-                              (if (= @current-player id) (ref-set current-player nil))
+                              (alter players disj id)
+                              (when (= @current-player id)
+                                (ref-set current-player nil)) ; Do I need this line?
                               (alter clients dissoc channel))))))))
 
 (defroutes app-routes
   (GET "/" [] (layout/index))
-  (GET "/ws" [] #'ws-handler)
+  (GET "/ws" [] ws-handler)
   (route/files "" {:root "js"})
   (route/not-found (layout/not-found)))
 
-(def app (-> #'app-routes
+(def app (-> app-routes
              (wrap-reload '(xo-game.handler views.layout))
              wrap-stacktrace
              handler/site
@@ -152,3 +163,8 @@
     (info "Running")
     (read)
     (stop)))
+
+; TODO
+; game state polling
+; restart button
+; reset using web sockets
