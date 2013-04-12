@@ -3,7 +3,7 @@
   (:use [jayq.util :only [log]]
         [jayq.core :only [$ inner show on attr]]))
 
-(declare stop)
+(declare stop send!)
 
 (def id      (atom nil))
 (def players (atom nil))
@@ -57,11 +57,14 @@
   (log "Wrong message " message))
 
 (defn get-id [conn]
-  (.send conn (str {:action :get-id})))
+  (send! {:action :get-id}))
 
 (def conn (js/WebSocket. (str "ws://" host "/ws")))
 
 (defn stop [] (.close conn))
+
+(defn send! [data]
+  (.send conn (str data)))
 
 (defn onopen [e]
   (get-id conn))
@@ -79,6 +82,6 @@
 
 (defn cell-click [cell-id]
   (when (and @turn? @player?)
-    (.send conn (str {:action :move :cell-to cell-id :player-id @id}))))
+    (send! {:action :move :cell-to cell-id :player-id @id})))
 
 (on ($ "div.cell") "click" (fn [e] (-> e (aget "currentTarget") $ (attr "id") cell-click)))

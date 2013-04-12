@@ -14534,6 +14534,7 @@ jayq.core.ajax_m = cljs.core.ObjMap.fromObject(["\ufdd0:return", "\ufdd0:bind", 
 }, "\ufdd0:zero":cljs.core.identity});
 var xo_game = {core:{}};
 xo_game.core.stop = void 0;
+xo_game.core.send_BANG_ = void 0;
 xo_game.core.id = cljs.core.atom.call(null, null);
 xo_game.core.players = cljs.core.atom.call(null, null);
 xo_game.core.turn_QMARK_ = cljs.core.atom.call(null, !1);
@@ -14597,12 +14598,15 @@ cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:finish", 
 cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:default", function(a) {
   return jayq.util.log.call(null, "Wrong message ", a)
 });
-xo_game.core.get_id = function(a) {
-  return a.send("" + cljs.core.str(cljs.core.ObjMap.fromObject(["\ufdd0:action"], {"\ufdd0:action":"\ufdd0:get-id"})))
+xo_game.core.get_id = function() {
+  return xo_game.core.send_BANG_.call(null, cljs.core.ObjMap.fromObject(["\ufdd0:action"], {"\ufdd0:action":"\ufdd0:get-id"}))
 };
 xo_game.core.conn = new WebSocket([cljs.core.str("ws://"), cljs.core.str(xo_game.core.host), cljs.core.str("/ws")].join(""));
 xo_game.core.stop = function() {
   return xo_game.core.conn.close()
+};
+xo_game.core.send_BANG_ = function(a) {
+  return xo_game.core.conn.send("" + cljs.core.str(a))
 };
 xo_game.core.onopen = function() {
   return xo_game.core.get_id.call(null, xo_game.core.conn)
@@ -14634,7 +14638,7 @@ xo_game.core.cell_click = function(a) {
   return cljs.core.truth_(function() {
     var a = cljs.core.deref.call(null, xo_game.core.turn_QMARK_);
     return cljs.core.truth_(a) ? cljs.core.deref.call(null, xo_game.core.player_QMARK_) : a
-  }()) ? xo_game.core.conn.send("" + cljs.core.str(cljs.core.ObjMap.fromObject(["\ufdd0:action", "\ufdd0:cell-to", "\ufdd0:player-id"], {"\ufdd0:action":"\ufdd0:move", "\ufdd0:cell-to":a, "\ufdd0:player-id":cljs.core.deref.call(null, xo_game.core.id)}))) : null
+  }()) ? xo_game.core.send_BANG_.call(null, cljs.core.ObjMap.fromObject(["\ufdd0:action", "\ufdd0:cell-to", "\ufdd0:player-id"], {"\ufdd0:action":"\ufdd0:move", "\ufdd0:cell-to":a, "\ufdd0:player-id":cljs.core.deref.call(null, xo_game.core.id)})) : null
 };
 jayq.core.on.call(null, jayq.core.$.call(null, "div.cell"), "click", function(a) {
   return xo_game.core.cell_click.call(null, jayq.core.attr.call(null, jayq.core.$.call(null, a.currentTarget), "id"))
