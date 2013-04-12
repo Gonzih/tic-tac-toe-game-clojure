@@ -27,7 +27,8 @@
   (if is-player?
     (status "Game in progress")
     (status "Game in progress (spectating)"))
-  (show-board))
+  (show-board)
+  (send! {:action :get-state}))
 
 (defmethod process-message :start-turn [message]
   (reset! turn? true)

@@ -14564,7 +14564,8 @@ xo_game.core.process_message = function() {
   return new cljs.core.MultiFn("process-message", "\ufdd0:action", "\ufdd0:default", e, a, b, c, d)
 }();
 cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:get-id", function(a) {
-  return cljs.core.reset_BANG_.call(null, xo_game.core.id, (new cljs.core.Keyword("\ufdd0:id")).call(null, a))
+  cljs.core.reset_BANG_.call(null, xo_game.core.id, (new cljs.core.Keyword("\ufdd0:id")).call(null, a));
+  return xo_game.core.send_BANG_.call(null, cljs.core.ObjMap.fromObject(["\ufdd0:action"], {"\ufdd0:action":"\ufdd0:get-state"}))
 });
 cljs.core._add_method.call(null, xo_game.core.process_message, "\ufdd0:start", function(a) {
   var b = cljs.core.seq_QMARK_.call(null, a) ? cljs.core.apply.call(null, cljs.core.hash_map, a) : a, a = cljs.core._lookup.call(null, b, "\ufdd0:player?", null), b = cljs.core._lookup.call(null, b, "\ufdd0:players", null);

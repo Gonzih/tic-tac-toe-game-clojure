@@ -33,11 +33,13 @@
 (def players (ref #{}))        ; List of players (ids)
 (def current-player (ref nil)) ; ID of current player (current turn)
 (def game-moves (ref []))      ; History of moves
+(def game-running (ref false)) ; State of game
 
 (defn reset-game []
   (info "Reset")
   (dosync
-    (ref-set game-moves [])))
+    (ref-set game-moves [])
+    (ref-set game-running false)))
 
 (defn user-win? [user-turns]
   (some (fn [turns] (subset? turns user-turns)) win-combinations))
@@ -67,6 +69,7 @@
                           :players (vec @players)}))
 
 (defn start-game []
+  (do-ref-set game-running true)
   (doall (map start-client @clients))
   (-> @current-player
       find-channel
@@ -90,7 +93,9 @@
       (when (< (count @players) 2) (alter   players conj   id))  ; If players amount il lower than 2 add player
       (when (= (count @players) 1) (ref-set current-player id))) ; If we have 1 player set it as current-player
     (send-channel! channel {:action :get-id :id id})             ; Send back user id to user
-    (when (= (count @players) 2) (start-game))))                 ; If we have 2 playerst then start the game
+    (if @game-running
+      (start-client [channel id])                                ; If game is runinng start it for new client only
+      (when (= (count @players) 2) (start-game)))))              ; If we have 2 playerst then start the game
 
 (defn try-win-game
   "Find winner and send clients info about it"
@@ -124,6 +129,12 @@
     (-> @current-player find-channel start-turn)   ; Start turn for new user
     (try-win-game)                                 ; Try to find game winner
     (try-finish-game)))                            ; Try to finish the game
+
+(defmethod process-message :get-state [channel message]
+  (doall (map (fn [[player-id cell-to]]
+                (send-channel! channel {:action :move
+                                       :cell-to cell-to
+                                       :player-id player-id})) @game-moves)))
 
 (defmethod process-message :default [channel message]
   (info (str "Invalid message " message)))
@@ -165,6 +176,5 @@
     (stop)))
 
 ; TODO
-; game state polling
 ; restart button
 ; reset using web sockets
