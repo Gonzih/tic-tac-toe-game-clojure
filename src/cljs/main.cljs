@@ -12,7 +12,6 @@
 
 (def host (-> js/document (aget "location") (aget "host")))
 
-
 (defn show-board [] (show ($ "#board")))
 (defn status [& messages] (inner ($ "#status") (apply str messages)))
 
