@@ -1,7 +1,7 @@
 (ns xo-game.core
   (:require [cljs.reader :as reader])
   (:use [jayq.util :only [log]]
-        [jayq.core :only [$ inner show on attr]]))
+        [jayq.core :only [$ inner show on attr add-class]]))
 
 (declare stop send!)
 
@@ -38,8 +38,12 @@
   (status "Waiting for other player's turn"))
 
 (defmethod process-message :move [message]
-  (let [{:keys [cell-to player-id]} message]
-    (inner ($ (str "div#" cell-to ".cell")) (@players player-id))))
+  (let [{:keys [cell-to player-id]} message
+        cell-sel (str "div#" cell-to ".cell")
+        cell     ($ cell-sel)
+        cell-val (@players player-id)]
+    (add-class cell cell-val)
+    (inner cell cell-val)))
 
 (defmethod process-message :win [{:keys [player-id]}]
   (if @player?

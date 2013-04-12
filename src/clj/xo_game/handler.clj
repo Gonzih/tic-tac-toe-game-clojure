@@ -29,11 +29,11 @@
 (def win-diag2 (list (s/split "13 22 31" #"\s")))                                ; Win diagonal from upper left to bottom right
 (def win-combinations (map set (concat win-lines win-cols win-diag1 win-diag2))) ; Concat all win possibilities, convert to set
 
-(def clients (ref {}))         ; List of clients (WebSockets + ids)
-(def players (ref #{}))        ; List of players (ids)
-(def current-player (ref nil)) ; ID of current player (current turn)
-(def game-moves (ref []))      ; History of moves
-(def game-running (ref false)) ; State of game
+(def clients        (ref {}))    ; List of clients (WebSockets + ids)
+(def players        (ref #{}))   ; List of players (ids)
+(def current-player (ref nil))   ; ID of current player (current turn)
+(def game-moves     (ref []))    ; History of moves
+(def game-running   (ref false)) ; State of game
 
 (defn reset-game []
   (info "Reset")

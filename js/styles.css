@@ -1,13 +1,23 @@
 #board > div.cell {
-        width: 30px;
-        height: 30px;
+        width: 90px;
+        height: 90px;
         border: 1px solid black;
         float: left;
         display: table-cell;
         vertical-align: middle;
         text-align: center;
+        font-family: Arial;
+        font-size: 70px;
 }
 
 div.clear {
         clear: both;
+}
+
+div.x {
+        color: red;
+}
+
+div.o {
+        color: blue;
 }
